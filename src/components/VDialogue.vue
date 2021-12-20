@@ -1,16 +1,12 @@
 <template>
   <div class="dialogue-wrapper flex flex-row bg-white rounded-r-2xl"
-       ref="test">
+       ref="dialogue">
     <img src="https://raw.githubusercontent.com/chaochaooo/Bio_Sketchbook/main/public/assets/svg/line.svg"
-         class="pl-6">
-    <div class="flex flex-col justify-between items-center"
-         @click="handleClick">
+         class="pl-6 h-96">
+    <div @click="handleClick">
       <div class="pt-6">
-        <p class="dialogue"><span>你好呀，小朋友! 让我们开始写生吧！画完后点击下一步可以查看该植物的完整信息哦。</span></p>
+        <p class="dialogue"><span>你好呀，小朋友! 快开始写生吧！全部画完后再点击下一步查看植物完整信息哦。</span></p>
       </div>
-      <img src="https://raw.githubusercontent.com/chaochaooo/Bio_Sketchbook/main/public/assets/svg/len.svg"
-           class="m-12"
-           @click="$emit('toggleMagnifier')">
     </div>
   </div>
 </template>
@@ -30,9 +26,9 @@ export default {
     }
   },
   mounted() {
-    this.$refs.test.click()
+    this.$refs.dialogue.click()
     speak(
-      '你好呀，小朋友! 让我们开始写生吧！画完后点击下一步可以查看该植物的完整信息哦。'
+      '你好呀，小朋友! 快开始写生吧！全部画完后再点击下一步查看植物完整信息哦。'
     )
   }
 }
@@ -46,6 +42,8 @@ export default {
 }
 
 .dialogue-wrapper {
+  height: 320px;
+  overflow: hidden;
   box-shadow: 0px 4px 30px rgba(108, 108, 108, 0.15);
 }
 
