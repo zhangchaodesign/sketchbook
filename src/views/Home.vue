@@ -11,8 +11,8 @@
     <VDialogue class="absolute top-1/2 left-0 transform -translate-y-2/3 transition duration-500 ease-in-out"
                ref="sidebar"
                @click="toggleSideBar"></VDialogue>
-    <VNext class="absolute bottom-12 right-12"
-           @click="exportSvg"></VNext>
+    <!-- <VNext class="absolute bottom-12 right-12"
+           @click="exportSvg"></VNext> -->
   </div>
 </template>
 
