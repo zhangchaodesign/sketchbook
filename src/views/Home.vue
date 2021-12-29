@@ -1,238 +1,98 @@
 <template>
-  <div id="container">
-    <div class="z-50 absolute bottom-12 left-1/2 transform -translate-x-1/2">
-      <a id="classification"
-         ref="classification"
-         class="text"></a>
+  <div class="canvas default w-full h-full flex flex-col justify-between items-center overflow-hidden">
+    <div class="absolute flex flex-row justify-between items-center bg-white rounded-b-2xl">
+      <VHeader></VHeader>
     </div>
-    <div ref="toCanvas"
-         class="z-50 absolute bottom-6 right-12 hidden">
-      <router-link to="/canvas"
-                   class="mx-6">
-        <img src='https://raw.githubusercontent.com/chaochaooo/Bio_Sketchbook/main/public/assets/svg/next.svg'>
-      </router-link>
-    </div>
-    <div class="z-50 absolute top-12 left-1/2 transform -translate-x-1/2">
-      <p class="text">按下快门，和我一起写生吧！</p>
-    </div>
-    <div ref="capture">
-      <VCapture @click="onCapture()"
-                class="z-50 absolute top-1/2 right-5 transform -translate-y-1/2"></VCapture>
-    </div>
-    <div class="z-40 layer">
-      <div class="circle"></div>
-    </div>
-    <div @click="clear()"
-         ref="clear"
-         class="z-50 absolute w-80 h-80 left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden">
-    </div>
-    <div ref="canvasWrapper"
-         class="z-0 overflow-hidden hidden absolute bottom-0">
-      <canvas ref="canvas"
-              id="canvas"></canvas>
-    </div>
-    <div class="z-0 overflow-hidden absolute bottom-0">
-      <video :width="windowWidth"
-             :height="windowHeight"
-             ref="video"
-             id="video"
-             playsinline
-             autoplay></video>
-    </div>
+    <canvas :style="cursor + canvasBg"
+            ref="canvas"
+            id="canvas"
+            class="w-full h-screen"
+            resize></canvas>
+    <VDialogue class="absolute top-1/2 left-0 transform -translate-y-2/3 transition duration-500 ease-in-out"
+               ref="sidebar"
+               @click="toggleSideBar"></VDialogue>
+    <VNext class="absolute bottom-12 right-12"
+           @click="exportSvg"></VNext>
   </div>
 </template>
 
 <script>
-import VCapture from '@/components/VCapture'
-import plantData from '@/utils/plant'
-import { mapState } from 'vuex'
+import VHeader from '@/components/VHeader'
+import VDialogue from '@/components/VDialogue'
+import VNext from '@/components/VNext'
+import setup from '@/utils/setup'
+import { clearProject, createLayer } from '@/utils/shared'
 
 export default {
   components: {
-    VCapture
+    VHeader,
+    VDialogue,
+    VNext
   },
   data() {
     return {
-      video: '', // video element
-      imgData: '', // captured image
-      canvas: '', // canvas to show captured image
-      context: '', // context object
-      scale: 1, // scale index
-      sketch: new Image(), // image object
-      windowWidth: 1194, // Safari iPad pro
-      windowHeight: 897 // Safari iPad pro without top search tab
-      // windowWidth: document.documentElement.clientWidth,
-      // windowHeight: document.documentElement.clientHeight
+      isInit: false,
+      vdrawArgs: {
+        size: {
+          width: 0,
+          height: 0
+        },
+        zoom: 0
+      },
+      svg: ''
+    }
+  },
+  methods: {
+    toggleSideBar() {
+      this.$refs['sidebar'].$el.classList.toggle('-translate-x-44')
+    },
+    exportSvg() {
+      console.log('exportSvg')
+      let newSvg = paper.project.exportSVG()
+      let encodedData = btoa(new XMLSerializer().serializeToString(newSvg))
+      let url = 'data:image/svg+xml;base64,' + encodedData
+      this.$store.commit('setDrawing', url)
     }
   },
   computed: {
-    ...mapState(['capture', 'plant'])
-  },
-  methods: {
-    errorHandler(error) {
-      console.log('navigator.getUserMedia error: ', error)
+    cursor() {
+      const tool = this.$store.state.toolName
+      if (tool === null || tool === 'brush') return `cursor: auto;`
+      if (tool !== 'select') return `cursor: none;`
+      return `cursor: auto;`
     },
-    gotStream(stream) {
-      window.stream = stream // make stream available to console
-      this.video.srcObject = stream
-      // Refresh button list in case labels have become available
-      return navigator.mediaDevices.enumerateDevices()
+    canvasBg() {
+      return `background-color: ${this.$store.state.canvasArgs.bgColor}fa;`
     },
-    start() {
-      if (window.stream) {
-        window.stream.getTracks().forEach(function (track) {
-          track.stop()
-        })
-      }
-      let constraints = {
-        // toggle back camera
-        video: {
-          facingMode: 'environment'
-        }
-      }
-      navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then(this.gotStream)
-        .catch(this.errorHandler)
-    },
-    onCapture() {
-      document.getElementById('classification').innerHTML = ''
-      this.$refs.capture.classList.toggle('hidden')
-      this.$refs.canvasWrapper.classList.toggle('hidden')
-      this.$refs.clear.classList.toggle('hidden')
-      this.video.classList.toggle('hidden')
-      this.context.drawImage(
-        this.video,
-        0,
-        0,
-        this.canvas.width / this.scale,
-        this.canvas.height / this.scale
-      ) // 500 375
-      this.imgData = this.canvas.toDataURL('image/jpeg')
-      this.$store.commit('setCapture', this.imgData)
-      this.onConfirm()
-    },
-    onConfirm() {
-      let xhr = new XMLHttpRequest()
-      xhr.open('POST', 'https://ztodesign.cn:5000/photo2sketch', true)
-      xhr.setRequestHeader('cache-control', 'no-cache')
-      let form = new FormData()
-      form.append('image', this.imgData)
-      let that = this
-      xhr.onreadystatechange = function () {
-        // Call a function when the state changes.
-        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-          // Request finished. Do processing here.
-          let result = JSON.parse(xhr.responseText)
-          // console.log(result)
-          that.$refs.toCanvas.classList.toggle('hidden')
-          document.getElementById('classification').innerHTML =
-            result.data.class
-          if (result) {
-            if (result.data.class === '非植物') {
-              // reset to capture
-              // that.clear()
-              that.$store.commit('setImage', result.data.resImage)
-              that.$store.commit('setPlant', '杜鹃花')
-              for (let i = 0; i < plantData.length; i++) {
-                if (that.plant.name === plantData[i].name) {
-                  that.$store.commit('setPlantData', plantData[i])
-                }
-              }
-            } else {
-              // set the current plant and get relevent data
-              that.$store.commit('setImage', result.data.resImage)
-              that.$store.commit('setPlant', result.data.class)
-              for (let i = 0; i < plantData.length; i++) {
-                if (that.plant.name === plantData[i].name) {
-                  // console.log(plantData[i])
-                  that.$store.commit('setPlantData', plantData[i])
-                }
-              }
-            }
-          }
-        }
-      }
-      xhr.send(form)
-      // alert('sent!')
-    },
-    clear() {
-      this.$refs.capture.classList.toggle('hidden')
-      this.$refs.canvasWrapper.classList.toggle('hidden')
-      this.$refs.toCanvas.classList.toggle('hidden')
-      this.video.classList.toggle('hidden')
-      this.$refs.clear.classList.toggle('hidden')
+    canvas() {
+      return this.$refs.canvas
     }
   },
   mounted() {
-    document.body.addEventListener(
-      'touchmove',
-      function (e) {
-        e.preventDefault()
-      },
-      { passive: false }
-    )
-    this.windowWidth = document.documentElement.clientWidth
-    this.windowHeight = (this.windowWidth / 4) * 3
-    this.video = this.$refs.video
-    this.canvas = this.$refs.canvas
-    // use this to ensure capture high-resolution image
-    this.context = this.canvas.getContext('2d')
-    this.scale = window.devicePixelRatio //2
-    this.canvas.width = Math.floor(this.windowWidth)
-    this.canvas.height = Math.floor(this.windowHeight)
-    // console.log(this.windowWidth)
-    // console.log(this.windowHeight)
-    this.context.scale(this.scale, this.scale)
-    let that = this
-    this.sketch.onload = function () {
-      that.context.drawImage(
-        this,
-        0,
-        0,
-        that.canvas.width / that.scale,
-        that.canvas.height / that.scale
-      )
+    setup(this)
+    clearProject()
+    createLayer()
+    this.$store.commit('setTool', 'pencil')
+  },
+  filters: {
+    toFixed(value) {
+      return value.toFixed(2)
     }
-    navigator.mediaDevices.enumerateDevices().catch(this.errorHandler)
-    this.start()
   }
 }
 </script>
 
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Mali:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200;1,300;1,400;1,500;1,600;1,700&display=swap');
-@font-face {
-  font-family: 'FZSJ-LXQWTJW';
-  src: url('https://cdn.glitch.me/afbd793d-0eec-495f-95c4-cd3c5b188240%2FFZSJ-LXQWTJW.TTF?v=1638340978154');
+<style>
+.canvas {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #f9f9f9;
 }
 
-.text {
-  font-weight: 600;
-  font-size: 2.25rem /* 30px */;
-  line-height: 2.5rem /* 36px */;
-  text-align: center;
-  color: white;
-  font-family: 'FZSJ-LXQWTJW', cursive;
-  text-shadow: 1px 2px 0px rgba(255, 192, 0, 1);
-}
-
-.layer {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
-.circle {
-  margin: auto auto;
-  width: 75%;
-  height: 70%;
-  border-radius: 120px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.2);
+.default {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNScgaGVpZ2h0PScxNSc+CiAgPHJlY3Qgd2lkdGg9JzUwJyBoZWlnaHQ9JzUwJyBmaWxsPSIjRjlGOUY5IiAvPgogIDxjaXJjbGUgY3g9IjEiIGN5PSIxIiByPSIwLjgiIGZpbGw9IiNDQUNBQ0IiLz4KPC9zdmc+');
+  background-repeat: repeat;
+  background-position: top;
 }
 </style>
