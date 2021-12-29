@@ -2,7 +2,7 @@
   <div class="dialogue-wrapper flex flex-row bg-white rounded-r-2xl"
        ref="dialogue">
     <img src="https://raw.githubusercontent.com/chaochaooo/Bio_Sketchbook/main/public/assets/svg/line.svg"
-         class="pl-6 h-96">
+         class="pl-6">
     <div @click="handleClick">
       <div class="pt-6">
         <p class="dialogue"><span>你好呀，小朋友! 快开始写生吧！全部画完后再点击下一步查看植物完整信息哦。</span></p>
