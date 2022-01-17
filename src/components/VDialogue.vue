@@ -5,7 +5,7 @@
          class="pl-6">
     <div @click="handleClick">
       <div class="pt-6">
-        <p class="dialogue"><span>你好呀，小朋友! 快开始写生吧！全部画完后再点击下一步查看植物完整信息哦。</span></p>
+        <p class="dialogue"><span>你好呀，小朋友! 让我们开始写生吧！</span></p>
       </div>
     </div>
   </div>
@@ -28,7 +28,7 @@ export default {
   mounted() {
     this.$refs.dialogue.click()
     speak(
-      '你好呀，小朋友! 快开始写生吧！全部画完后再点击下一步查看植物完整信息哦。'
+      '你好呀，小朋友! 让我们开始写生吧！'
     )
   }
 }
